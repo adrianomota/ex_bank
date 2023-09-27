@@ -1,0 +1,162 @@
+name: phoenix_liveview
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize]
+
+env:
+  GUARDIAN_SECRET_KEY: ${{ secrets.GUARDIAN_SECRET_KEY }}
+
+jobs:
+  # dialyzer:
+  #   runs-on: ubuntu-latest
+  #   strategy:
+  #     matrix:
+  #       elixir: [1.15]
+  #       otp: [26]
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: erlef/setup-elixir@v1
+  #       with:
+  #         elixir-version: ${{ matrix.elixir }}
+  #         otp-version: ${{ matrix.otp }}
+  #     - uses: actions/cache@v1
+  #       id: mix-cache-dialyzer
+  #       with:
+  #         path: deps
+  #         key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+  #     - name: Install Mix Dependencies
+  #       if: steps.mix-cache-dialyzer.outputs.cache-hit != 'true'
+  #       run: mix deps.get
+  #     - name: ===> Dialyzer
+  #       run: mix dialyzer
+
+  lint:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        elixir: [1.15]
+        otp: [26]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: erlef/setup-elixir@v1
+        with:
+          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{ matrix.otp }}
+      - uses: actions/cache@v1
+        id: mix-cache-lint
+        with:
+          path: deps
+          key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+      - name: Install Mix Dependencies
+        if: steps.mix-cache-lint.outputs.cache-hit != 'true'
+        run: mix deps.get
+      - name: ===> Credo LINT
+        run: mix credo --strict
+
+  check_format:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        elixir: [1.15]
+        otp: [26]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: erlef/setup-elixir@v1
+        with:
+          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{ matrix.otp }}
+      - uses: actions/cache@v1
+        id: mix-cache-format
+        with:
+          path: deps
+          key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+      - name: Install Mix Dependencies
+        if: steps.mix-cache-format.outputs.cache-hit != 'true'
+        run: mix deps.get
+      - name: ===> FORMAT
+        run: mix format --check-formatted
+
+  security:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        elixir: [1.15]
+        otp: [26]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: erlef/setup-elixir@v1
+        with:
+          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{ matrix.otp }}
+      - uses: actions/cache@v1
+        id: mix-cache-security
+        with:
+          path: deps
+          key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+      - name: Install Mix Dependencies
+        if: steps.mix-cache-security.outputs.cache-hit != 'true'
+        run: mix deps.get
+      - name: ===> Security
+        run: mix sobelow --config
+
+  coverage:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        elixir: [1.15]
+        otp: [26]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: erlef/setup-elixir@v1
+        with:
+          elixir-version: ${{ matrix.elixir }}
+          otp-version: ${{ matrix.otp }}
+      - uses: actions/cache@v1
+        id: mix-cache-coverage
+        with:
+          path: deps
+          key: ${{ runner.os }}-${{ matrix.otp }}-${{ matrix.elixir }}-mix-${{ hashFiles(format('{0}{1}', github.workspace, '/mix.lock')) }}
+      - name: Install Mix Dependencies
+        if: steps.mix-cache-coverage.outputs.cache-hit != 'true'
+        run: |
+          mix local.rebar --force
+          mix local.hex --force
+          mix deps.get
+          mix ecto.create
+      - name: ===> Verify Coverage and tests
+        run: mix coveralls.html
+    services:
+      pg:
+        image: postgres:alpine
+        ports: ["5432:5432"]
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+  # deploy:
+  #   name: Deploy Gigalixir
+  #   needs: [dialyzer, lint, check_format, security, coverage]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         ref: main # Checkout out master instead of the latest commit
+  #         fetch-depth: 0 # Checkout the whole branch
+  #     - uses: actions/setup-python@v2
+  #       with:
+  #         python-version: 3.8.1
+  #     - uses: mhanberg/gigalixir-action@v0.6.2
+  #       with:
+  #         GIGALIXIR_USERNAME: ${{ secrets.GIGALIXIR_USERNAME }}
+  #         GIGALIXIR_PASSWORD: ${{ secrets.GIGALIXIR_PASSWORD }}
+  #         GIGALIXIR_APP: ${{ secrets.GIGALIXIR_APP }}
+  #         GIGALIXIR_CLEAN: true
+  #         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+  #         MIGRATIONS: false # defaults to true
