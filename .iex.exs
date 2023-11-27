@@ -1,4 +1,5 @@
 alias ExBank.{
   Repo,
-  Entities.User
+  Entities.User,
+  Entities.Address
 }

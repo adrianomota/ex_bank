@@ -2,10 +2,13 @@ defmodule ExBank.Entities.User do
   use CleanArchitecture.Entity
   import Ecto.Changeset
 
+  alias ExBank.Entities.Address
+
   @role_field [:role]
   @role_values [:USER, :ADMIN]
-  @required_fields [:first_name, :last_name, :email, :password, :password_confirmation]
   @primary_key {:id, :binary_id, autogenerate: true}
+  @fields [:first_name, :last_name, :email, :password, :password_confirmation]
+  @requireds @fields
 
   schema "users" do
     field :first_name, :string
@@ -15,7 +18,7 @@ defmodule ExBank.Entities.User do
     field :password_confirmation, :string, virtual: true
     field :password_hash, :string
     field :role, Ecto.Enum, values: @role_values, default: :USER
-
+    has_many :adresses, Address, on_replace: :delete_if_exists, on_delete: :delete_all
     timestamps()
   end
 
@@ -25,14 +28,15 @@ defmodule ExBank.Entities.User do
 
   def changeset(user, attrs) do
     user
-    |> cast(attrs, @role_field ++ @required_fields)
-    |> validate_required(@required_fields)
+    |> cast(attrs, @role_field ++ @fields)
+    |> validate_required(@requireds)
     |> validate_format(:email, ~r/@/, message: "type a valid e-mail")
     |> update_change(:email, &String.downcase/1)
-    |> validate_length(:password, min: 6, max: 100)
+    |> validate_length(:password, min: 6)
     |> validate_confirmation(:password)
     |> unique_constraint(:email)
     |> put_password_hash()
+    |> cast_assoc(:adresses, with: &Address.changeset/2)
   end
 
   defp put_password_hash(

@@ -1,6 +1,8 @@
 defmodule ExBank.Contracts.User.Create do
   use CleanArchitecture.Contract
 
+  alias ExBank.Contracts.Address.Create, as: CreateUserAddress
+
   @role_values [:USER, :ADMIN]
   @required_fields [:first_name, :last_name, :email, :password, :password_confirmation]
 
@@ -12,11 +14,14 @@ defmodule ExBank.Contracts.User.Create do
     field :password_confirmation
     field :password_hash, :string
     field :role, Ecto.Enum, values: @role_values, default: :USER
+
+    embeds_many(:adresses, CreateUserAddress)
   end
 
   def changeset(%{} = attrs) do
     %__MODULE__{}
     |> cast(attrs, @required_fields)
+    |> cast_embed(:adresses, required: true)
     |> validate_required(@required_fields)
     |> validate_format(:email, ~r/@/, message: "type a valid e-mail")
     |> validate_length(:password, min: 6, max: 100)

@@ -67,6 +67,7 @@ defmodule ExBank.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
+      {:tesla, "~> 1.8"},
 
       # Additional packages
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
@@ -77,7 +78,7 @@ defmodule ExBank.MixProject do
       {:ex_machina, "~> 2.7", only: :test},
       {:faker, "~> 0.17.0"},
       {:clean_architecture, "~> 0.1.1"},
-      {:argon2_elixir, "~> 3.0"}
+      {:argon2_elixir, "~> 4.0"}
     ]
   end
 

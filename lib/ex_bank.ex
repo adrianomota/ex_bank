@@ -4,10 +4,13 @@ defmodule ExBank do
 
   alias Ecto.Changeset
   alias ExBank.Entities.User
+  alias ExBank.Infrastructure.Adapters.Viacep
 
   def create_user(input) do
     with {:ok, validated_input} <- Contracts.User.Create.validate_input(input),
-         {:ok, %User{} = user} <- Interactors.User.Create.call(validated_input) do
+         {:ok, _} <- validated_input |> parse_zip_code_field() |> Viacep.call(),
+         {:ok, %User{} = user} <-
+           Interactors.User.Create.call(validated_input) do
       {:ok, user}
     else
       {:error, %Changeset{} = changeset} -> {:error, changeset}
@@ -56,5 +59,9 @@ defmodule ExBank do
        total_entries: total_entris,
        total_pages: total_pages
      }}
+  end
+
+  defp parse_zip_code_field(%{adresses: adresses}) do
+    Enum.map(adresses, fn address -> address.zip_code end)
   end
 end
