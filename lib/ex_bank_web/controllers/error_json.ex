@@ -3,6 +3,10 @@ defmodule ExBankWeb.ErrorJSON do
     %{errors: %{detail: Phoenix.Controller.status_message_from_template(template)}}
   end
 
+  def error(%{status: status}) do
+    %{status: status}
+  end
+
   def error(%{message: message}) do
     %{message: message}
   end

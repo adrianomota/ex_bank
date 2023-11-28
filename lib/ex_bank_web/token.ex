@@ -6,6 +6,7 @@ defmodule ExBankWeb.Token do
 
   def generate(user) do
     Token.sign(Endpoint, @salt, %{user_id: user.id})
+    IO.inspect(user.id)
   end
 
   def verify(token) do
