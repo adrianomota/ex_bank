@@ -8,12 +8,14 @@ defmodule ExBank do
 
   def create_user(input) do
     with {:ok, validated_input} <- Contracts.User.Create.validate_input(input),
-         {:ok, _} <- validated_input |> parse_zip_code_field() |> Viacep.call(),
+         {:ok, _} <-
+           validated_input |> parse_zip_code_field() |> Viacep.call(),
          {:ok, %User{} = user} <-
            Interactors.User.Create.call(validated_input) do
       {:ok, user}
     else
       {:error, %Changeset{} = changeset} -> {:error, changeset}
+      {:error, _reason} = error -> {:error, error}
     end
   end
 
